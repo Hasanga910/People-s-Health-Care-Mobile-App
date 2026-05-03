@@ -20,7 +20,7 @@ import appointmentRoutes  from './routes/appointments.js';
 
 // ── Lab — equipment & notifications (new) ───────────────────────
 import equipmentRoutes    from './routes/Equipment.js';
-import notificationRoutes from './routes/notifications.js';
+import notificationRoutes from './routes/Notifications.js';
 
 // ── Pharmacy & billing routes ────────────────────────────────────
 import drugRoutes           from './routes/Drugs.js';
