@@ -5,7 +5,7 @@ import {
 } from '../controllers/Drugcontroller.js';
 import { protect }   from '../middleware/auth.js';
 import { authorize } from '../middleware/roleCheck.js';
-import { getInventoryReportData } from '../controllers/inventoryReportController.js';
+import { getInventoryReportData } from '../controllers/Inventoryreportcontroller.js';
 
 const drugRouter = express.Router();
 
