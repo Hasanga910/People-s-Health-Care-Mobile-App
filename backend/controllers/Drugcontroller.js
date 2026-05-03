@@ -1,5 +1,5 @@
 import Drug      from '../models/Drug.js';
-import DrugStock from '../models/Drugstock.js'; // needed for stock-check on delete
+import DrugStock from '../models/DrugStock.js'; // needed for stock-check on delete
 
 // ═══════════════════════════════════════════════════════════════
 //  DRUG CONTROLLER  –  Drug catalog management (no stock here)
