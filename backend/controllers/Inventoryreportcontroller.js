@@ -19,7 +19,7 @@
  */
 
 import Drug      from '../models/Drug.js';
-import DrugStock from '../models/Drugstock.js';
+import DrugStock from '../models/DrugStock.js';
 
 // ── Helpers ──────────────────────────────────────────────────────
 function getStockStatus(totalStock, reorderLevel) {
