@@ -19,7 +19,7 @@ import publicRoutes       from './routes/public.js';
 import appointmentRoutes  from './routes/appointments.js';
 
 // ── Lab — equipment & notifications (new) ───────────────────────
-import equipmentRoutes    from './routes/equipment.js';
+import equipmentRoutes    from './routes/Equipment.js';
 import notificationRoutes from './routes/notifications.js';
 
 // ── Pharmacy & billing routes ────────────────────────────────────
