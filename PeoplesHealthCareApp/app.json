@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "People's Health Care",
+    "slug": "PeoplesHealthCareApp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "peopleshealthcareapp",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE"
+      }
+    },
+    "plugins": [
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "reactCompiler": false
+    }
+  }
+}
