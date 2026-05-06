@@ -5,7 +5,6 @@ import {
     Alert,
     Platform,
     StyleSheet,
-    Text,
     TouchableOpacity,
     View,
 } from 'react-native';
@@ -24,6 +23,8 @@ import AppointmentDetailScreen from './AppointmentDetailScreen';
 import PatientPrescriptions from './PatientPrescriptions';
 import PatientLabResults from './PatientLabResults';
 import PatientBilling from './PatientBilling';
+import PatientFeedback from './PatientFeedback';
+import { ChatBot } from '../IndexScreen';
 
 const Tab = createBottomTabNavigator();
 const RootStack = createStackNavigator();
@@ -34,99 +35,6 @@ const C = COLORS?.patient || {
   accent: '#00ACC1',
   light: '#E0F2FE',
 };
-
-const BASE = {
-  background: '#F8FAFC',
-  card: '#FFFFFF',
-  text: '#0F172A',
-  muted: '#64748B',
-  border: '#E2E8F0',
-};
-
-function PlaceholderScreen({ title, subtitle, icon }) {
-  return (
-    <View style={styles.placeholderRoot}>
-      <View style={styles.placeholderIconBox}>
-        <Ionicons name={icon || 'construct-outline'} size={36} color={C.primary} />
-      </View>
-
-      <Text style={styles.placeholderTitle}>{title}</Text>
-      <Text style={styles.placeholderSubtitle}>
-        {subtitle || 'This screen will be connected soon.'}
-      </Text>
-    </View>
-  );
-}
-
-function AppointmentsPlaceholder() {
-  return (
-    <PlaceholderScreen
-      title="Appointments"
-      subtitle="Appointment list, booking, cancellation, and PDF download will be added here."
-      icon="calendar-outline"
-    />
-  );
-}
-
-function PrescriptionsPlaceholder() {
-  return (
-    <PlaceholderScreen
-      title="Prescriptions"
-      subtitle="Patient prescriptions and prescription PDF download will be added here."
-      icon="document-text-outline"
-    />
-  );
-}
-
-function LabResultsPlaceholder() {
-  return (
-    <PlaceholderScreen
-      title="Lab Results"
-      subtitle="Patient lab results and report viewing will be added here."
-      icon="flask-outline"
-    />
-  );
-}
-
-function BillingPlaceholder() {
-  return (
-    <PlaceholderScreen
-      title="Billing"
-      subtitle="Billing and payment details can be connected here."
-      icon="card-outline"
-    />
-  );
-}
-
-function PatientProfilePlaceholder() {
-  return (
-    <PlaceholderScreen
-      title="My Profile"
-      subtitle="Patient profile viewing and maintenance will be added here."
-      icon="person-outline"
-    />
-  );
-}
-
-function EditProfilePlaceholder() {
-  return (
-    <PlaceholderScreen
-      title="Edit Profile"
-      subtitle="Profile editing will be added here."
-      icon="create-outline"
-    />
-  );
-}
-
-function ChangePasswordPlaceholder() {
-  return (
-    <PlaceholderScreen
-      title="Change Password"
-      subtitle="Password changing will be added here."
-      icon="lock-closed-outline"
-    />
-  );
-}
 
 function HeaderLogoutButton() {
   const { logout } = useAuth();
@@ -262,12 +170,21 @@ function MainTabs() {
       <Tab.Screen name="Prescriptions" component={PatientPrescriptions} />
       <Tab.Screen name="Lab Results" component={PatientLabResults} />
       <Tab.Screen name="Billing" component={PatientBilling} />
+      <Tab.Screen
+        name="PatientFeedback"
+        component={PatientFeedback}
+        options={{
+          tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
+        }}
+      />
     </Tab.Navigator>
   );
 }
 
 export default function PatientLayout() {
   return (
+    <View style={styles.layoutRoot}>
     <RootStack.Navigator screenOptions={{ headerShown: false }}>
       <RootStack.Screen name="MainTabs" component={MainTabs} />
       
@@ -291,6 +208,12 @@ export default function PatientLayout() {
       />
 
       <RootStack.Screen
+        name="PatientFeedback"
+        component={PatientFeedback}
+        options={stackOptions('Feedback & Ratings')}
+      />
+
+      <RootStack.Screen
   name="PatientProfile"
   component={PatientProfile}
   options={stackOptions('My Profile')}
@@ -310,10 +233,15 @@ export default function PatientLayout() {
 
 
     </RootStack.Navigator>
+     <ChatBot fabBottom={86} />
+      </View>
   );
 }
 
 const styles = StyleSheet.create({
+   layoutRoot: {
+    flex: 1,
+  },
   headerIconButton: {
     width: 36,
     height: 36,
@@ -321,42 +249,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.16)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-
-  placeholderRoot: {
-    flex: 1,
-    backgroundColor: BASE.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-
-  placeholderIconBox: {
-    width: 82,
-    height: 82,
-    borderRadius: 28,
-    backgroundColor: C.light || '#E0F2FE',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 18,
-    borderWidth: 1,
-    borderColor: '#BAE6FD',
-  },
-
-  placeholderTitle: {
-    color: BASE.text,
-    fontSize: 22,
-    fontWeight: '900',
-    textAlign: 'center',
-  },
-
-  placeholderSubtitle: {
-    color: BASE.muted,
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 21,
-    maxWidth: 320,
   },
 });
