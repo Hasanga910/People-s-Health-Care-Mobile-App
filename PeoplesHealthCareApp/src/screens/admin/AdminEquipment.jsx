@@ -88,6 +88,24 @@ const fmt = (d) =>
 const daysUntil = (d) =>
   d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
 
+// ── Validation helpers ───────────────────────────────────────
+const validatePhone = (v) => {
+  if (!v || !v.trim()) return "Telephone is required.";
+  if (!/^\d+$/.test(v.trim())) return "Telephone must contain numbers only.";
+  if (v.trim().length !== 10) return "Telephone must be exactly 10 digits.";
+  return null;
+};
+
+const validateEmail = (v) => {
+  if (!v || !v.trim()) return "Email is required.";
+  if (v.includes(" ")) return "Email must not contain spaces.";
+  if (!v.includes("@")) return "Email must contain @.";
+  const parts = v.split("@");
+  if (parts.length !== 2 || !parts[1].includes(".")) return "Email must contain a valid domain (e.g. .com).";
+  if (parts[1].startsWith(".") || parts[1].endsWith(".")) return "Email domain is invalid.";
+  return null;
+};
+
 // ── Picker Sheet (bottom sheet replacement for <select>) ──────
 function PickerSheet({ title, options, value, onSelect, onClose, visible }) {
   const slideAnim = useRef(new Animated.Value(600)).current;
