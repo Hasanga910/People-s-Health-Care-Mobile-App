@@ -112,7 +112,7 @@ function Slideshow({ onRegister, onLogin }) {
   );
 }
 
-function ChatBot() {
+export function ChatBot({ fabBottom = 28 } = {}){
   const [open, setOpen]         = useState(false);
   const [messages, setMessages] = useState([
     { role: 'bot', text: "👋 Hello! I'm your navigation assistant for People's Health Care. Ask me anything about the system." },
@@ -141,7 +141,11 @@ function ChatBot() {
 
   return (
     <>
-      <TouchableOpacity style={cb.fab} onPress={() => setOpen(true)} activeOpacity={0.85}>
+      <TouchableOpacity
+  style={[cb.fab, { bottom: fabBottom }]}
+  onPress={() => setOpen(true)}
+  activeOpacity={0.85}
+>
         <Text style={{ fontSize: 24 }}>💬</Text>
       </TouchableOpacity>
       <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
