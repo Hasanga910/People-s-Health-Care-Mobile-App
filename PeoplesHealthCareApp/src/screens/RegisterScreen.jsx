@@ -8,6 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import authService from '../services/authService';
 import { useAuth } from '../context/AuthContext';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const LOGO = require('../../assets/Logo.png');
 
@@ -65,6 +66,91 @@ function InputField({ label, value, onChangeText, placeholder, secureTextEntry, 
         numberOfLines={multiline ? 3 : 1}
       />
       {!!hint && <Text style={f.hint}>{hint}</Text>}
+    </View>
+  );
+}
+
+function formatDateForInput(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function parseDateString(value) {
+  if (!value) return new Date(2000, 0, 1);
+
+  const parsed = new Date(`${value}T00:00:00`);
+  if (isNaN(parsed.getTime())) return new Date(2000, 0, 1);
+
+  return parsed;
+}
+
+function getMaxBirthDate() {
+  const today = new Date();
+  today.setDate(today.getDate() - 1);
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
+
+function DateOfBirthField({ label, value, onChange, hint, required = true }) {
+  const [showPicker, setShowPicker] = useState(false);
+
+  const selectedDate = parseDateString(value);
+  const maxDate = getMaxBirthDate();
+
+  const handleDateChange = (event, date) => {
+    if (Platform.OS === 'android') {
+      setShowPicker(false);
+    }
+
+    if (event?.type === 'dismissed') return;
+
+    if (date) {
+      const picked = new Date(date);
+      picked.setHours(0, 0, 0, 0);
+      onChange(formatDateForInput(picked));
+    }
+  };
+
+  return (
+    <View style={f.wrap}>
+      <Text style={f.label}>
+        {label} {required && <Text style={{ color: '#F87171' }}>*</Text>}
+      </Text>
+
+      <TouchableOpacity
+        style={[f.select, showPicker && { borderColor: '#3B82F6' }]}
+        onPress={() => setShowPicker(true)}
+        activeOpacity={0.8}
+      >
+        <Text style={value ? f.selectVal : f.selectPh}>
+          {value || 'Select date of birth…'}
+        </Text>
+        <Text style={{ color: '#94A3B8', fontSize: 12 }}>📅</Text>
+      </TouchableOpacity>
+
+      {!!hint && <Text style={f.hint}>{hint}</Text>}
+
+      {showPicker && (
+        <DateTimePicker
+          value={selectedDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'inline' : 'calendar'}
+          maximumDate={maxDate}
+          onChange={handleDateChange}
+        />
+      )}
+
+      {Platform.OS === 'ios' && showPicker && (
+        <TouchableOpacity
+          style={f.dateDoneBtn}
+          onPress={() => setShowPicker(false)}
+          activeOpacity={0.85}
+        >
+          <Text style={f.dateDoneText}>Done Selecting Birthday</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -241,7 +327,12 @@ export default function RegisterScreen() {
           {step === 1 && (
             <View>
               <SelectField label="Gender" options={['Male', 'Female', 'Other']} value={formData.gender} onSelect={set('gender')} />
-              <InputField label="Date of Birth" value={formData.dateOfBirth} onChangeText={set('dateOfBirth')} placeholder="YYYY-MM-DD" hint="Format: YYYY-MM-DD (e.g. 1995-06-15)" />
+              <DateOfBirthField
+  label="Date of Birth"
+  value={formData.dateOfBirth}
+  onChange={set('dateOfBirth')}
+  hint="Select your date of birth from the calendar"
+/>
               {isMinor && (
                 <View style={s.minorBanner}>
                   <Text style={s.minorText}>ⓘ Patient is under 18 ({age} years old). Emergency contact is required.</Text>
@@ -367,6 +458,18 @@ const f = StyleSheet.create({
   dropItemActive: { backgroundColor: '#EFF6FF' },
   dropText: { fontSize: 14, color: '#0F172A' },
   dropTextActive: { color: '#1565C0', fontWeight: '600' },
+  dateDoneBtn: {
+  backgroundColor: '#1565C0',
+  borderRadius: 12,
+  paddingVertical: 11,
+  alignItems: 'center',
+  marginTop: 8,
+},
+dateDoneText: {
+  color: '#fff',
+  fontSize: 13,
+  fontWeight: '700',
+},
 });
 
 const si = StyleSheet.create({

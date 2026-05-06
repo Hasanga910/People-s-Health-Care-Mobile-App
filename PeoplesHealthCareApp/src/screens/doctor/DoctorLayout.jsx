@@ -11,9 +11,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
-import DoctorDashboard   from './DoctorDashboard';
-import DoctorAppointments from './DoctorAppointments';
-import PlaceholderScreen from '../PlaceholderScreen';
+import DoctorDashboard        from './DoctorDashboard';
+import DoctorAppointments     from './DoctorAppointments';
+import DoctorPrescriptions    from './DoctorPrescriptions';
+import DoctorLab              from './DoctorLab';
+import DoctorPatients         from './DoctorPatients';
+import DoctorMedicineAnalysis from './DoctorMedicineAnalysis';
+import PlaceholderScreen      from '../PlaceholderScreen';
+import DoctorUnavailability from './DoctorUnavailability';
 
 const Tab = createBottomTabNavigator();
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -895,7 +900,7 @@ const ms = StyleSheet.create({
 // ─────────────────────────────────────────────────────────────────────────────
 export default function DoctorLayout() {
   const { user, logout } = useAuth();
-
+  const tabNavRef = useRef(null);
   const [moreVisible,  setMoreVisible]  = useState(false);
   const [notifVisible, setNotifVisible] = useState(false);
   const [notifs,       setNotifs]       = useState([]);
@@ -983,17 +988,23 @@ export default function DoctorLayout() {
   return (
     <>
       <Tab.Navigator
-        tabBar={(props) => (
-          <DoctorTabBar {...props} onMorePress={() => setMoreVisible(true)} />
-        )}
+        tabBar={(props) => {
+            tabNavRef.current = props.navigation;
+            return <DoctorTabBar {...props} onMorePress={() => setMoreVisible(true)} />;
+          }}
         screenOptions={{ headerShown: false }}
       >
         <Tab.Screen name="DoctorDashboard" children={() => <DoctorDashboard notifProps={notifProps} />} />
         <Tab.Screen name="DoctorSchedule"  children={() => <DoctorAppointments />} options={{ title: 'My Schedule' }} />
-        <Tab.Screen name="DoctorRx"        component={PlaceholderScreen} options={{ title: 'Prescriptions' }} />
-        <Tab.Screen name="DoctorLab"       component={PlaceholderScreen} options={{ title: 'Lab' }} />
-        <Tab.Screen name="DoctorPatients"  component={PlaceholderScreen} options={{ title: 'Patient Records', tabBarButton: () => null }} />
-        <Tab.Screen name="DoctorMedicine"  component={PlaceholderScreen} options={{ title: 'Medicine Analysis', tabBarButton: () => null }} />
+        <Tab.Screen
+  name="DoctorUnavailability"
+  component={DoctorUnavailability}
+  options={{ title: 'Manage Unavailability', tabBarButton: () => null }}
+/>
+        <Tab.Screen name="DoctorRx"        children={() => <DoctorPrescriptions />} options={{ title: 'Prescriptions' }} />
+        <Tab.Screen name="DoctorLab"       children={() => <DoctorLab />} options={{ title: 'Lab' }} />
+        <Tab.Screen name="DoctorPatients"  children={() => <DoctorPatients />} options={{ title: 'Patient Records', tabBarButton: () => null }} />
+        <Tab.Screen name="DoctorMedicine"  children={() => <DoctorMedicineAnalysis />} options={{ title: 'Medicine Analysis', tabBarButton: () => null }} />
         <Tab.Screen name="DoctorSettings"  component={PlaceholderScreen} options={{ title: 'Settings', tabBarButton: () => null }} />
       </Tab.Navigator>
 
@@ -1012,7 +1023,7 @@ export default function DoctorLayout() {
       <MoreSheet
         visible={moreVisible}
         onClose={() => setMoreVisible(false)}
-        onNavigate={() => {}}
+        onNavigate={(screen) => tabNavRef.current?.navigate(screen)}
         user={user}
         logout={logout}
       />

@@ -6,7 +6,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
 import api from '../../services/api';
+
 
 // ── Constants ─────────────────────────────────────────────────
 const DAYS   = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -310,6 +312,7 @@ const dm = StyleSheet.create({
 
 // ── Main Component ────────────────────────────────────────────
 export default function DoctorAppointments() {
+   const navigation = useNavigation();
   const today = getLocalDateStr();
 
   const [appointments, setAppointments]   = useState([]);
@@ -491,6 +494,29 @@ export default function DoctorAppointments() {
                 <Ionicons name="chevron-forward" size={16} color="#374151" />
               </TouchableOpacity>
             </View>
+
+            <TouchableOpacity
+  activeOpacity={0.88}
+  style={s.manageUnavailableBtn}
+  onPress={() =>
+    navigation.navigate('DoctorUnavailability', {
+      initialDate: selectedDate,
+    })
+  }
+>
+  <View style={s.manageUnavailableIcon}>
+    <Ionicons name="calendar-clear-outline" size={18} color="#1565C0" />
+  </View>
+
+  <View style={{ flex: 1 }}>
+    <Text style={s.manageUnavailableTitle}>Manage Unavailability</Text>
+    <Text style={s.manageUnavailableSub}>
+      Block a full day or a specific session
+    </Text>
+  </View>
+
+  <Ionicons name="chevron-forward" size={18} color="#64748B" />
+</TouchableOpacity>
 
             {/* Day headers */}
             <View style={s.calDayHeaders}>
@@ -824,4 +850,39 @@ const s = StyleSheet.create({
   scheduleId: { fontSize: 10, fontWeight: '700', color: '#1D4ED8', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace' },
   scheduleName: { fontSize: 13, fontWeight: '600', color: '#0F172A' },
   scheduleMeta: { fontSize: 11, color: '#94A3B8', marginTop: 2 },
+
+  manageUnavailableBtn: {
+  backgroundColor: '#EFF6FF',
+  borderWidth: 1,
+  borderColor: '#BFDBFE',
+  borderRadius: 16,
+  padding: 12,
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 10,
+  marginTop: 12,
+  marginBottom: 12,
+},
+
+manageUnavailableIcon: {
+  width: 38,
+  height: 38,
+  borderRadius: 13,
+  backgroundColor: '#DBEAFE',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+
+manageUnavailableTitle: {
+  color: '#0F172A',
+  fontSize: 13,
+  fontWeight: '900',
+},
+
+manageUnavailableSub: {
+  color: '#64748B',
+  fontSize: 11,
+  fontWeight: '600',
+  marginTop: 2,
+},
 });

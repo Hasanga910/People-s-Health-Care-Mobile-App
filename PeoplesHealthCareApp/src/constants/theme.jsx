@@ -1,7 +1,7 @@
 // Matches the web app's per-role color palettes
 export const COLORS = {
   doctor:   { primary: '#6366f1', light: '#e0e7ff', dark: '#4338ca' }, // indigo
-  patient:  { primary: '#0d9488', light: '#ccfbf1', dark: '#0f766e' }, // teal
+  patient: {  primary: '#0D2137', secondary: '#1565C0', accent: '#00ACC1', light: '#E0F2FE' }, // blue
   lab:      { primary: '#0284c7', light: '#e0f2fe', dark: '#0369a1' }, // blue
   pharmacy: { primary: '#7c3aed', light: '#ede9fe', dark: '#5b21b6' }, // violet
   cashier:  { primary: '#2563eb', light: '#dbeafe', dark: '#1d4ed8' }, // blue
