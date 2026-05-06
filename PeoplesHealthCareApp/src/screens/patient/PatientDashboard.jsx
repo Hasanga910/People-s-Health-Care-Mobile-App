@@ -299,17 +299,7 @@ export default function PatientDashboard({ navigation }) {
   };
 
   const openFeedback = () => {
-    const parent = navigation.getParent();
-    const routeNames = parent?.getState?.()?.routeNames || [];
-
-    if (routeNames.includes('PatientFeedback')) {
-      parent.navigate('PatientFeedback');
-    } else {
-      Alert.alert(
-        'Feedback & Ratings',
-        'Feedback page route is not connected yet. Please ask the feedback module member to create a screen with route name "PatientFeedback".'
-      );
-    }
+    navigation.navigate('PatientFeedback');
   };
 
   const handleLogout = () => {
@@ -333,13 +323,11 @@ export default function PatientDashboard({ navigation }) {
         meResult,
         appointmentResult,
         prescriptionResult,
-        holidayNotificationsResult,
         precheckNotificationsResult,
       ] = await Promise.allSettled([
         api.get('/auth/me'),
         api.get('/appointments/my'),
         api.get('/prescriptions/my'),
-        api.get('/appointments/holiday-cancellations'),
         api.get('/lab-results/patient-notifications'),
       ]);
 
@@ -370,25 +358,16 @@ export default function PatientDashboard({ navigation }) {
 
       let unreadTotal = 0;
 
-      if (holidayNotificationsResult.status === 'fulfilled') {
-        const holidayList = extractArray(holidayNotificationsResult.value?.data, [
-          'cancellations',
-          'notifications',
-          'data',
-        ]);
-        unreadTotal += holidayList.length;
-      }
+if (precheckNotificationsResult.status === 'fulfilled') {
+  const precheckList = extractArray(precheckNotificationsResult.value?.data, [
+    'notifications',
+    'prechecks',
+    'data',
+  ]);
+  unreadTotal += precheckList.length;
+}
 
-      if (precheckNotificationsResult.status === 'fulfilled') {
-        const precheckList = extractArray(precheckNotificationsResult.value?.data, [
-          'notifications',
-          'prechecks',
-          'data',
-        ]);
-        unreadTotal += precheckList.length;
-      }
-
-      setNotificationCount(unreadTotal);
+setNotificationCount(unreadTotal);
     } catch (error) {
       console.log('Patient dashboard error:', error?.message);
     } finally {

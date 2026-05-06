@@ -47,21 +47,25 @@ function formatPrettyDate(dateString) {
 }
 
 function mapHolidayNotifications(list) {
-  return list.map((item, index) => ({
-    id: `holiday-${item?._id || item?.id || index}`,
-    type: 'holiday',
-    icon: 'calendar-clear-outline',
-    chipText: 'Appointment',
-    chipBg: '#FEE2E2',
-    chipColor: '#B91C1C',
-    title: 'Appointment Cancelled',
-    message:
-      item?.message ||
-      `Your ${item?.session || 'session'} appointment on ${formatPrettyDate(
-        item?.date
-      )} has been cancelled.`,
-    createdAt: item?.createdAt || item?.date || '',
-  }));
+  return list.map((item, index) => {
+    const prettyDate = formatPrettyDate(item?.date);
+
+    return {
+      id: `holiday-${item?._id || item?.id || index}`,
+      type: 'holiday',
+      icon: 'calendar-clear-outline',
+      chipText: 'Appointment',
+      chipBg: '#FEE2E2',
+      chipColor: '#B91C1C',
+      title: `${item?.session || 'Selected'} session on ${prettyDate} cancelled`,
+      message:
+        item?.message ||
+        `The ${item?.session || 'selected'} session of ${prettyDate} has been cancelled by the doctor due to ${
+          item?.reason || 'an unexpected reason'
+        }. Please make an appointment for another day and a session. Sorry for the inconvenience.`,
+      createdAt: item?.cancelledAt || item?.createdAt || item?.date || '',
+    };
+  });
 }
 
 function mapPrecheckNotifications(list) {
