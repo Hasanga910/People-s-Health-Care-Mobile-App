@@ -20,6 +20,24 @@ import api from "../../services/api";
 
 const ACCENT = "#1A237E";
 
+// ── Validation helpers ───────────────────────────────────────
+const validatePhone = (v) => {
+  if (!v || !v.trim()) return "Telephone is required.";
+  if (!/^\d+$/.test(v.trim())) return "Telephone must contain numbers only — no spaces or dashes.";
+  if (v.trim().length !== 10) return `Telephone must be exactly 10 digits (entered: ${v.trim().length}).`;
+  return null;
+};
+
+const validateEmail = (v) => {
+  if (!v || !v.trim()) return "Email is required.";
+  if (v.includes(" ")) return "Email must not contain spaces.";
+  if (!v.includes("@")) return "Email must contain @.";
+  const parts = v.split("@");
+  if (parts.length !== 2 || !parts[1].includes(".")) return "Email must contain a valid domain (e.g. .com).";
+  if (parts[1].startsWith(".") || parts[1].endsWith(".")) return "Email domain is invalid.";
+  return null;
+};
+
 const ROLE_CONFIG = {
   doctor: { label: "Doctor", bg: "#DBEAFE", text: "#1D4ED8", icon: "medkit" },
   lab: { label: "Lab", bg: "#CCFBF1", text: "#0F766E", icon: "flask" },
@@ -71,6 +89,7 @@ function AddStaffModal({ visible, onClose, onSaved }) {
   const [experience, setExperience] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const reset = () => {
     setRole("doctor");
@@ -81,6 +100,7 @@ function AddStaffModal({ visible, onClose, onSaved }) {
     setSlmc("");
     setExperience("");
     setError("");
+    setFieldErrors({});
     setShowPass(false);
   };
 
@@ -110,12 +130,19 @@ function AddStaffModal({ visible, onClose, onSaved }) {
 
   const handleSubmit = async () => {
     setError("");
-    if (!name.trim() || !email.trim() || !password || !telephone.trim()) {
-      return setError("Name, email, password and telephone are required.");
+    const errs = {};
+    if (!name.trim()) errs.name = "Full name is required.";
+    const emailErr = validateEmail(email);
+    if (emailErr) errs.email = emailErr;
+    const phoneErr = validatePhone(telephone);
+    if (phoneErr) errs.telephone = phoneErr;
+    if (!password) errs.password = "Password is required.";
+    if (passStrength < 3) errs.password = "Password is too weak — meet at least 3 of the 5 rules.";
+    if (Object.keys(errs).length) {
+      setFieldErrors(errs);
+      return;
     }
-    if (passStrength < 3) {
-      return setError("Password is too weak — meet at least 3 of the 5 rules.");
-    }
+    setFieldErrors({});
     setSaving(true);
     try {
       const payload = {
@@ -218,41 +245,57 @@ function AddStaffModal({ visible, onClose, onSaved }) {
               <Text style={modalSt.label}>FULL NAME *</Text>
               <TextInput
                 value={name}
-                onChangeText={setName}
-                style={modalSt.input}
+                onChangeText={(v) => { setName(v); setFieldErrors((p) => ({ ...p, name: undefined })); }}
+                style={[modalSt.input, fieldErrors.name && modalSt.inputError]}
                 placeholder={
                   role === "doctor" ? "Dr. M.T.D. Jayaweera" : "John Doe"
                 }
                 placeholderTextColor="#94A3B8"
               />
+              {fieldErrors.name ? <Text style={modalSt.fieldErrTxt}>{fieldErrors.name}</Text> : null}
 
               <Text style={modalSt.label}>EMAIL *</Text>
               <TextInput
                 value={email}
-                onChangeText={setEmail}
-                style={modalSt.input}
+                onChangeText={(v) => { setEmail(v); setFieldErrors((p) => ({ ...p, email: undefined })); }}
+                style={[modalSt.input, fieldErrors.email && modalSt.inputError]}
                 placeholder="email@example.com"
                 placeholderTextColor="#94A3B8"
                 autoCapitalize="none"
                 keyboardType="email-address"
               />
+              {fieldErrors.email ? <Text style={modalSt.fieldErrTxt}>{fieldErrors.email}</Text> : null}
 
               <Text style={modalSt.label}>TELEPHONE *</Text>
               <TextInput
                 value={telephone}
-                onChangeText={setTelephone}
-                style={modalSt.input}
+                onChangeText={(v) => {
+                  // Strip non-digits on input so user can't type letters
+                  const digits = v.replace(/\D/g, "");
+                  setTelephone(digits);
+                  setFieldErrors((p) => ({ ...p, telephone: undefined }));
+                }}
+                style={[modalSt.input, fieldErrors.telephone && modalSt.inputError]}
                 placeholder="0712345678"
                 placeholderTextColor="#94A3B8"
-                keyboardType="phone-pad"
+                keyboardType="number-pad"
+                maxLength={10}
               />
+              {telephone.length > 0 && (
+                <View style={modalSt.phoneHint}>
+                  <Text style={[modalSt.phoneHintTxt, { color: telephone.length === 10 ? "#15803D" : "#94A3B8" }]}>
+                    {telephone.length}/10 digits {telephone.length === 10 ? "✓" : ""}
+                  </Text>
+                </View>
+              )}
+              {fieldErrors.telephone ? <Text style={modalSt.fieldErrTxt}>{fieldErrors.telephone}</Text> : null}
 
               <Text style={modalSt.label}>PASSWORD *</Text>
               <View style={modalSt.passWrap}>
                 <TextInput
                   value={password}
-                  onChangeText={setPassword}
-                  style={[modalSt.input, { flex: 1, marginBottom: 0 }]}
+                  onChangeText={(v) => { setPassword(v); setFieldErrors((p) => ({ ...p, password: undefined })); }}
+                  style={[modalSt.input, { flex: 1, marginBottom: 0 }, fieldErrors.password && modalSt.inputError]}
                   placeholder="••••••••"
                   placeholderTextColor="#94A3B8"
                   secureTextEntry={!showPass}
@@ -268,6 +311,7 @@ function AddStaffModal({ visible, onClose, onSaved }) {
                   />
                 </TouchableOpacity>
               </View>
+              {fieldErrors.password ? <Text style={modalSt.fieldErrTxt}>{fieldErrors.password}</Text> : null}
 
               {/* Strength bar */}
               {password.length > 0 && (
@@ -375,6 +419,7 @@ function ViewStaffModal({ staff, visible, onClose, onUpdated }) {
   const [experience, setExperience] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     if (staff) {
@@ -385,6 +430,7 @@ function ViewStaffModal({ staff, visible, onClose, onUpdated }) {
       setExperience(String(staff.doctorDetails?.workingExperience || ""));
       setEditing(false);
       setError("");
+      setFieldErrors({});
     }
   }, [staff]);
 
@@ -394,9 +440,17 @@ function ViewStaffModal({ staff, visible, onClose, onUpdated }) {
 
   const handleSave = async () => {
     setError("");
-    if (!name.trim() || !email.trim() || !telephone.trim()) {
-      return setError("Name, email and telephone are required.");
+    const errs = {};
+    if (!name.trim()) errs.name = "Full name is required.";
+    const emailErr = validateEmail(email);
+    if (emailErr) errs.email = emailErr;
+    const phoneErr = validatePhone(telephone);
+    if (phoneErr) errs.telephone = phoneErr;
+    if (Object.keys(errs).length) {
+      setFieldErrors(errs);
+      return;
     }
+    setFieldErrors({});
     setSaving(true);
     try {
       const payload = {
@@ -495,36 +549,57 @@ function ViewStaffModal({ staff, visible, onClose, onUpdated }) {
 
               <Text style={modalSt.label}>FULL NAME</Text>
               {editing ? (
-                <TextInput
-                  value={name}
-                  onChangeText={setName}
-                  style={modalSt.input}
-                />
+                <>
+                  <TextInput
+                    value={name}
+                    onChangeText={(v) => { setName(v); setFieldErrors((p) => ({ ...p, name: undefined })); }}
+                    style={[modalSt.input, fieldErrors.name && modalSt.inputError]}
+                  />
+                  {fieldErrors.name ? <Text style={modalSt.fieldErrTxt}>{fieldErrors.name}</Text> : null}
+                </>
               ) : (
                 <Text style={view.readOnlyVal}>{staff.name}</Text>
               )}
 
               <Text style={modalSt.label}>EMAIL</Text>
               {editing ? (
-                <TextInput
-                  value={email}
-                  onChangeText={setEmail}
-                  style={modalSt.input}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                />
+                <>
+                  <TextInput
+                    value={email}
+                    onChangeText={(v) => { setEmail(v); setFieldErrors((p) => ({ ...p, email: undefined })); }}
+                    style={[modalSt.input, fieldErrors.email && modalSt.inputError]}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                  />
+                  {fieldErrors.email ? <Text style={modalSt.fieldErrTxt}>{fieldErrors.email}</Text> : null}
+                </>
               ) : (
                 <Text style={view.readOnlyVal}>{staff.email}</Text>
               )}
 
               <Text style={modalSt.label}>TELEPHONE</Text>
               {editing ? (
-                <TextInput
-                  value={telephone}
-                  onChangeText={setTelephone}
-                  style={modalSt.input}
-                  keyboardType="phone-pad"
-                />
+                <>
+                  <TextInput
+                    value={telephone}
+                    onChangeText={(v) => {
+                      const digits = v.replace(/\D/g, "");
+                      setTelephone(digits);
+                      setFieldErrors((p) => ({ ...p, telephone: undefined }));
+                    }}
+                    style={[modalSt.input, fieldErrors.telephone && modalSt.inputError]}
+                    keyboardType="number-pad"
+                    maxLength={10}
+                  />
+                  {telephone.length > 0 && (
+                    <View style={modalSt.phoneHint}>
+                      <Text style={[modalSt.phoneHintTxt, { color: telephone.length === 10 ? "#15803D" : "#94A3B8" }]}>
+                        {telephone.length}/10 digits {telephone.length === 10 ? "✓" : ""}
+                      </Text>
+                    </View>
+                  )}
+                  {fieldErrors.telephone ? <Text style={modalSt.fieldErrTxt}>{fieldErrors.telephone}</Text> : null}
+                </>
               ) : (
                 <Text style={view.readOnlyVal}>{staff.telephone || "—"}</Text>
               )}
@@ -1143,6 +1218,26 @@ const modalSt = StyleSheet.create({
     fontSize: 13,
     color: "#0F172A",
     marginBottom: 4,
+  },
+  inputError: {
+    borderColor: "#FCA5A5",
+    backgroundColor: "#FFF1F2",
+  },
+  fieldErrTxt: {
+    fontSize: 11,
+    color: "#B91C1C",
+    marginTop: 2,
+    marginBottom: 2,
+    marginLeft: 2,
+  },
+  phoneHint: {
+    marginTop: 2,
+    marginBottom: 2,
+    marginLeft: 2,
+  },
+  phoneHintTxt: {
+    fontSize: 11,
+    fontWeight: "600",
   },
   roleGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   roleBtn: {
