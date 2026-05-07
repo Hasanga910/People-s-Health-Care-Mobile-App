@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, ActivityIndicator,
-  RefreshControl, StyleSheet, Platform,
+  RefreshControl, StyleSheet, Platform, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -110,13 +110,15 @@ const t = StyleSheet.create({
 });
 
 // ══════════════════════════════════════════════════════════════
-export default function DoctorDashboard({ notifProps }) {
+export default function DoctorDashboard({ notifProps, doctorProfile }) {
   const { user }   = useAuth();
   const navigation = useNavigation();
-  const doctorName = user?.name || 'Doctor';
-  const expYears   = parseInt(user?.doctorDetails?.workingExperience, 10);
+  const profile = doctorProfile || user;
+  const doctorName = profile?.name || 'Doctor';
+  const expYears   = parseInt(profile?.doctorDetails?.workingExperience || profile?.workingExperience, 10);
   const subtitle   = !isNaN(expYears) && expYears > 0 ? `${expYears}+ yrs experience` : 'Doctor';
   const initials   = doctorName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  const profilePhotoUrl = profile?.photo || profile?.profilePhoto || profile?.doctorDetails?.profilePhoto || null;
 
   // Session config
   const [morningStart, setMorningStart] = useState('07:00');
@@ -261,6 +263,16 @@ export default function DoctorDashboard({ notifProps }) {
 
   const onRefresh = () => { setRefreshing(true); fetchAll(); };
 
+  const buildPrefillData = (appt = {}) => ({
+    patientName: appt.patientName || appt.patient?.name || '',
+    patientId: appt.patientId || appt.patient?.userId || '',
+    appointmentId: appt.appointmentId || appt._id || '',
+  });
+
+  const goToPrescription = (appt) => {
+    navigation.navigate('DoctorRx', appt ? { prefill: buildPrefillData(appt) } : { newPrescription: true });
+  };
+
   // ── Actions ───────────────────────────────────────────────
   const handleStart = async (appt) => {
     setStartingId(appt._id);
@@ -270,6 +282,7 @@ export default function DoctorDashboard({ notifProps }) {
       setAppointments(prev => prev.map(a => a._id === updated._id ? updated : a));
       setApptStats(prev => ({ ...prev, pending: Math.max(0, prev.pending - 1), inProgress: prev.inProgress + 1 }));
       showToast(`Started appointment for ${appt.patientName || 'patient'}`);
+      goToPrescription(updated || appt);
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to start appointment', 'error');
     } finally {
@@ -278,7 +291,7 @@ export default function DoctorDashboard({ notifProps }) {
   };
 
   const handleContinue = (appt) => {
-    showToast(`Continuing with ${appt.patientName || 'patient'}...`);
+    goToPrescription(appt);
   };
 
   const handleEarlyStart = async () => {
@@ -332,6 +345,13 @@ export default function DoctorDashboard({ notifProps }) {
     { label: 'Patients Seen',      value: loadingAppts ? '—' : apptStats.completed, sub: 'Today',                             icon: 'people-outline',         color: '#E65100', bg: '#FFF3E0', trend: `+${apptStats.completed}`, up: apptStats.completed > 0 },
   ];
 
+  const QUICK_ACTIONS = [
+    { label: 'Issue Prescription', icon: 'document-text-outline', color: '#1565C0', bg: '#EFF6FF', onPress: () => goToPrescription() },
+    { label: 'Request Lab Test', icon: 'flask-outline', color: '#7C3AED', bg: '#F5F3FF', onPress: () => navigation.navigate('DoctorLab', { initialTab: 'requests', newRequest: true }) },
+    { label: 'View Lab Results', icon: 'bar-chart-outline', color: '#00897B', bg: '#E0F2F1', onPress: () => navigation.navigate('DoctorLab', { initialTab: 'results' }) },
+    { label: 'Patient Records', icon: 'people-outline', color: '#E65100', bg: '#FFF3E0', onPress: () => navigation.navigate('DoctorPatients') },
+  ];
+
   return (
     <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
       {toast && <Toast msg={toast.msg} type={toast.type} />}
@@ -372,9 +392,13 @@ export default function DoctorDashboard({ notifProps }) {
                   )}
                 </TouchableOpacity>
               )}
-              <View style={s.avatarCircle}>
-                <Text style={s.avatarText}>{initials}</Text>
-              </View>
+              {profilePhotoUrl ? (
+                <Image source={{ uri: profilePhotoUrl }} style={s.avatarImage} />
+              ) : (
+                <View style={s.avatarCircle}>
+                  <Text style={s.avatarText}>{initials}</Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -388,10 +412,10 @@ export default function DoctorDashboard({ notifProps }) {
 
           {/* Header action buttons */}
           <View style={s.headerBtns}>
-            <TouchableOpacity style={s.headerBtnOutline} activeOpacity={0.8}>
+            <TouchableOpacity style={s.headerBtnOutline} onPress={() => navigation.navigate('DoctorSchedule')} activeOpacity={0.8}>
               <Text style={s.headerBtnOutlineText}>View Schedule</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={s.headerBtnFill} activeOpacity={0.8}>
+            <TouchableOpacity style={s.headerBtnFill} onPress={() => goToPrescription()} activeOpacity={0.8}>
               <Text style={s.headerBtnFillText}>+ New Prescription</Text>
             </TouchableOpacity>
           </View>
@@ -416,6 +440,21 @@ export default function DoctorDashboard({ notifProps }) {
                 <Text style={s.statSub}>{card.sub}</Text>
               </View>
             ))}
+          </View>
+
+          <View style={s.sectionCard}>
+            <Text style={s.sectionCardTitle}>Quick Actions</Text>
+            <View style={s.quickGrid}>
+              {QUICK_ACTIONS.map(action => (
+                <TouchableOpacity key={action.label} style={s.quickAction} onPress={action.onPress} activeOpacity={0.85}>
+                  <View style={[s.quickIconBox, { backgroundColor: action.bg }]}>
+                    <Ionicons name={action.icon} size={18} color={action.color} />
+                  </View>
+                  <Text style={s.quickLabel}>{action.label}</Text>
+                  <Ionicons name="chevron-forward" size={14} color="#CBD5E1" />
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
 
           {/* ── TODAY'S SCHEDULE CARD ── */}
@@ -596,7 +635,12 @@ export default function DoctorDashboard({ notifProps }) {
             <View style={s.sectionCard}>
               <Text style={s.sectionCardTitle}>Recent Lab Results</Text>
               {labAlerts.slice(0, 3).map((alert, i) => (
-                <View key={alert._id || i} style={[s.labCard, { borderLeftColor: alert.alertType === 'abnormal' ? '#EF4444' : '#8B5CF6' }]}>
+                <TouchableOpacity
+                  key={alert._id || i}
+                  style={[s.labCard, { borderLeftColor: alert.alertType === 'abnormal' ? '#EF4444' : '#8B5CF6' }]}
+                  onPress={() => navigation.navigate('DoctorLab', { initialTab: 'results', openResultId: alert.testId || alert._id })}
+                  activeOpacity={0.85}
+                >
                   <View style={[s.labIconBox, { backgroundColor: alert.alertType === 'abnormal' ? '#FEF2F2' : '#F5F3FF' }]}>
                     <Ionicons name="flask-outline" size={18} color={alert.alertType === 'abnormal' ? '#DC2626' : '#7C3AED'} />
                   </View>
@@ -609,7 +653,7 @@ export default function DoctorDashboard({ notifProps }) {
                       {alert.alertType === 'abnormal' ? '⚠ Abnormal' : '✓ Ready'}
                     </Text>
                   </View>
-                </View>
+                </TouchableOpacity>
               ))}
             </View>
           )}
@@ -634,7 +678,12 @@ export default function DoctorDashboard({ notifProps }) {
               </View>
             ) : (
               recentLabResults.map((result, i) => (
-                <View key={result._id || i} style={[s.labCard, { borderLeftColor: result.alertType === 'abnormal' ? '#EF4444' : '#8B5CF6' }]}>
+                <TouchableOpacity
+                  key={result._id || i}
+                  style={[s.labCard, { borderLeftColor: result.alertType === 'abnormal' ? '#EF4444' : '#8B5CF6' }]}
+                  onPress={() => navigation.navigate('DoctorLab', { initialTab: 'results', openResultId: result.testId || result._id })}
+                  activeOpacity={0.85}
+                >
                   <View style={[s.labIconBox, { backgroundColor: result.alertType === 'abnormal' ? '#FEF2F2' : '#F5F3FF' }]}>
                     <Ionicons name="flask-outline" size={18} color={result.alertType === 'abnormal' ? '#DC2626' : '#7C3AED'} />
                   </View>
@@ -649,7 +698,7 @@ export default function DoctorDashboard({ notifProps }) {
                       {result.alertType === 'abnormal' ? '⚠ Abnormal' : '✓ Ready'}
                     </Text>
                   </View>
-                </View>
+                </TouchableOpacity>
               ))
             )}
           </View>
@@ -668,7 +717,12 @@ export default function DoctorDashboard({ notifProps }) {
               recentRx.map((rx, i) => {
                 const st = RX_STATUS[rx.status] || RX_STATUS.pending;
                 return (
-                  <View key={rx._id || i} style={s.rxRow}>
+                  <TouchableOpacity
+                    key={rx._id || i}
+                    style={s.rxRow}
+                    onPress={() => navigation.navigate('DoctorRx', { openId: rx.prescriptionId || rx._id })}
+                    activeOpacity={0.85}
+                  >
                     <View style={s.rxIcon}>
                       <Ionicons name="document-text-outline" size={18} color="#1565C0" />
                     </View>
@@ -679,7 +733,7 @@ export default function DoctorDashboard({ notifProps }) {
                     <View style={[s.rxBadge, { backgroundColor: st.bg }]}>
                       <Text style={[s.rxBadgeText, { color: st.text }]}>{st.label}</Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 );
               })
             )}
@@ -705,6 +759,7 @@ const s = StyleSheet.create({
   bellBadgeCritical: { backgroundColor: '#EF4444' },
   bellBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   avatarCircle: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#1565C0', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' },
+  avatarImage: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#E2E8F0', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' },
   avatarText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   headerBtns: { flexDirection: 'row', gap: 10 },
   headerBtnOutline: { flex: 1, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.3)', borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
@@ -779,6 +834,11 @@ const s = StyleSheet.create({
 
   sectionCard: { backgroundColor: '#fff', borderRadius: 18, borderWidth: 1, borderColor: '#F1F5F9', overflow: 'hidden', padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
   sectionCardTitle: { fontSize: 15, fontWeight: '700', color: '#0F172A', marginBottom: 12 },
+
+  quickGrid: { gap: 8 },
+  quickAction: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 12, borderWidth: 1, borderColor: '#F1F5F9', backgroundColor: '#F8FAFC', padding: 11 },
+  quickIconBox: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  quickLabel: { flex: 1, fontSize: 13, fontWeight: '700', color: '#0F172A' },
 
   labCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, borderLeftWidth: 4, backgroundColor: '#F8FAFC', marginBottom: 8, borderWidth: 1, borderColor: '#F1F5F9' },
   labIconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },

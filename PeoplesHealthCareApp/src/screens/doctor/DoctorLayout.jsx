@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Modal,
   ScrollView, Animated, Platform, Pressable, Dimensions,
-  PanResponder,
+  PanResponder, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,8 +17,8 @@ import DoctorPrescriptions    from './DoctorPrescriptions';
 import DoctorLab              from './DoctorLab';
 import DoctorPatients         from './DoctorPatients';
 import DoctorMedicineAnalysis from './DoctorMedicineAnalysis';
-import PlaceholderScreen      from '../PlaceholderScreen';
-import DoctorUnavailability from './DoctorUnavailability';
+import DoctorSettings         from './DoctorSettings';
+import DoctorUnavailability   from './DoctorUnavailability';
 
 const Tab = createBottomTabNavigator();
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -816,7 +816,7 @@ const tb = StyleSheet.create({
 // ─────────────────────────────────────────────────────────────────────────────
 // MORE BOTTOM SHEET
 // ─────────────────────────────────────────────────────────────────────────────
-function MoreSheet({ visible, onClose, onNavigate, user, logout }) {
+function MoreSheet({ visible, onClose, onNavigate, user, doctorProfile, logout }) {
   const insets    = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(500)).current;
 
@@ -830,11 +830,20 @@ function MoreSheet({ visible, onClose, onNavigate, user, logout }) {
     Animated.timing(slideAnim, { toValue: 500, duration: 220, useNativeDriver: true }).start(() => onClose());
   };
 
+  const MORE_ITEMS = [
+    { screen: 'DoctorPatients',  label: 'Patient Records',      icon: 'people-outline' },
+    { screen: 'DoctorMedicine',  label: 'Medicine Analysis',    icon: 'analytics-outline' },
+    { screen: 'DoctorSettings',  label: 'Account Settings',     icon: 'settings-outline' },
+  ];
+
   if (!visible) return null;
 
-  const name     = user?.name || 'Doctor';
+  const profile = doctorProfile || user;
+  const name = profile?.name || 'Doctor';
   const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-  const expYears = parseInt(user?.doctorDetails?.workingExperience, 10);
+  const profilePhotoUrl = profile?.photo || profile?.profilePhoto || profile?.doctorDetails?.profilePhoto || null;
+  const workingExperience = profile?.doctorDetails?.workingExperience || profile?.workingExperience;
+  const expYears = parseInt(workingExperience, 10);
   const subtitle = !isNaN(expYears) && expYears > 0 ? `${expYears}+ yrs experience` : 'Physician';
 
   return (
@@ -846,7 +855,14 @@ function MoreSheet({ visible, onClose, onNavigate, user, logout }) {
         >
           <View style={ms.handle} />
           <View style={ms.doctorRow}>
-            <View style={ms.avatar}><Text style={ms.avatarText}>{initials}</Text></View>
+            {profilePhotoUrl ? (
+              <Image 
+                source={{ uri: profilePhotoUrl }} 
+                style={ms.avatarImage}
+              />
+            ) : (
+              <View style={ms.avatar}><Text style={ms.avatarText}>{initials}</Text></View>
+            )}
             <View>
               <Text style={ms.doctorName}>Dr. {name.replace(/^Dr\.?\s*/i, '')}</Text>
               <Text style={ms.doctorSub}>{subtitle} · People's Health Care</Text>
@@ -884,6 +900,7 @@ const ms = StyleSheet.create({
   handle: { width: 40, height: 4, backgroundColor: '#E2E8F0', borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
   doctorRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
   avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: ACCENT, alignItems: 'center', justifyContent: 'center' },
+  avatarImage: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#E2E8F0' },
   avatarText: { color: '#fff', fontWeight: '800', fontSize: 18 },
   doctorName: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
   doctorSub: { fontSize: 12, color: '#64748B', marginTop: 2 },
@@ -907,13 +924,47 @@ export default function DoctorLayout() {
   const [unreadIds,    setUnreadIds]    = useState(new Set());
   const [loadingN,     setLoadingN]     = useState(false);
   const [toasts,       setToasts]       = useState([]);
+  const [doctorProfile, setDoctorProfile] = useState(null);
 
   const prevIdsRef    = useRef(new Set());
   const unreadIdsRef  = useRef(new Set());
   const toastIdRef    = useRef(0);
 
+  // ── Fetch doctor profile from database ────────────────────────
+  const fetchDoctorProfile = useCallback(async () => {
+    if (!user) {
+      setDoctorProfile(null);
+      return;
+    }
+
+    try {
+      const response = await api.get('/auth/me');
+      const freshUser = response.data?.user || response.data?.data || response.data;
+      setDoctorProfile(freshUser || null);
+    } catch (error) {
+      const unauthorized = error?.response?.status === 401 || String(error?.message || '').includes('Not authorized');
+      if (!unauthorized) {
+        console.error('Failed to fetch doctor profile:', error);
+      }
+      setDoctorProfile(null);
+    }
+  }, [user]);
+
+  // Fetch doctor profile on mount and when user changes
+  useEffect(() => {
+    fetchDoctorProfile();
+  }, [fetchDoctorProfile, user]);
+
   // ── Fetch notifications ────────────────────────────────────
   const fetchNotifs = useCallback(async (showToasts = false) => {
+    if (!user) {
+      setLoadingN(false);
+      setNotifs([]);
+      unreadIdsRef.current = new Set();
+      setUnreadIds(new Set());
+      return;
+    }
+
     if (!showToasts) setLoadingN(true);
     try {
       const todayStr = getLocalDateStr();
@@ -954,11 +1005,14 @@ export default function DoctorLayout() {
       }
       prevIdsRef.current = builtIds;
     } catch (e) {
-      console.error('Notification fetch failed:', e);
+      const unauthorized = e?.response?.status === 401 || String(e?.message || '').includes('Not authorized');
+      if (!unauthorized) {
+        console.error('Notification fetch failed:', e);
+      }
     } finally {
       setLoadingN(false);
     }
-  }, []);
+  }, [user]);
 
   // Phase 1: baseline (no toasts), Phase 2: toasts, then poll every 10s
   useEffect(() => {
@@ -985,27 +1039,28 @@ export default function DoctorLayout() {
     onNotifPress: () => { setNotifVisible(true); markAllRead(); },
   };
 
+  const openMoreSheet = () => {
+    setMoreVisible(true);
+    fetchDoctorProfile();
+  };
+
   return (
     <>
       <Tab.Navigator
         tabBar={(props) => {
             tabNavRef.current = props.navigation;
-            return <DoctorTabBar {...props} onMorePress={() => setMoreVisible(true)} />;
+            return <DoctorTabBar {...props} onMorePress={openMoreSheet} />;
           }}
         screenOptions={{ headerShown: false }}
       >
-        <Tab.Screen name="DoctorDashboard" children={() => <DoctorDashboard notifProps={notifProps} />} />
+        <Tab.Screen name="DoctorDashboard" children={() => <DoctorDashboard notifProps={notifProps} doctorProfile={doctorProfile} />} />
         <Tab.Screen name="DoctorSchedule"  children={() => <DoctorAppointments />} options={{ title: 'My Schedule' }} />
-        <Tab.Screen
-  name="DoctorUnavailability"
-  component={DoctorUnavailability}
-  options={{ title: 'Manage Unavailability', tabBarButton: () => null }}
-/>
         <Tab.Screen name="DoctorRx"        children={() => <DoctorPrescriptions />} options={{ title: 'Prescriptions' }} />
         <Tab.Screen name="DoctorLab"       children={() => <DoctorLab />} options={{ title: 'Lab' }} />
         <Tab.Screen name="DoctorPatients"  children={() => <DoctorPatients />} options={{ title: 'Patient Records', tabBarButton: () => null }} />
         <Tab.Screen name="DoctorMedicine"  children={() => <DoctorMedicineAnalysis />} options={{ title: 'Medicine Analysis', tabBarButton: () => null }} />
-        <Tab.Screen name="DoctorSettings"  component={PlaceholderScreen} options={{ title: 'Settings', tabBarButton: () => null }} />
+        <Tab.Screen name="DoctorSettings"  children={(props) => <DoctorSettings {...props} onProfileUpdated={setDoctorProfile} />} options={{ title: 'Settings', tabBarButton: () => null }} />
+        <Tab.Screen name="DoctorUnavailability" children={(props) => <DoctorUnavailability {...props} />} options={{ title: 'Manage Availability', tabBarButton: () => null }} />
       </Tab.Navigator>
 
       {/* Liquid glass toasts — overlay on top of everything */}
@@ -1025,6 +1080,7 @@ export default function DoctorLayout() {
         onClose={() => setMoreVisible(false)}
         onNavigate={(screen) => tabNavRef.current?.navigate(screen)}
         user={user}
+        doctorProfile={doctorProfile}
         logout={logout}
       />
     </>

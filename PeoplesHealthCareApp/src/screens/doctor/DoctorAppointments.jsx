@@ -9,7 +9,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import api from '../../services/api';
 
-
 // ── Constants ─────────────────────────────────────────────────
 const DAYS   = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -59,6 +58,7 @@ function toMins(hhmm = '00:00') {
 function AppointmentDetailModal({ appt, onClose, onStatusChange }) {
   if (!appt) return null;
 
+  const navigation = useNavigation();
   const [loading, setLoading]           = useState(false);
   const [prescription, setPrescription] = useState(null);
   const [labRequest, setLabRequest]     = useState(null);
@@ -93,6 +93,13 @@ function AppointmentDetailModal({ appt, onClose, onStatusChange }) {
       await api.patch(`/appointments/${appt.id}/start`);
       onStatusChange(appt.id, 'In Progress');
       onClose();
+      navigation.navigate('DoctorRx', {
+        prefill: {
+          patientName: appt.patient || '',
+          patientId: appt.patientId || '',
+          appointmentId: appt.apptId || '',
+        },
+      });
     } catch (err) {
       console.log('Start failed:', err.message);
     } finally { setLoading(false); }
@@ -194,6 +201,16 @@ function AppointmentDetailModal({ appt, onClose, onStatusChange }) {
                           </View>
                         );
                       })()}
+                      <TouchableOpacity
+                        style={dm.openMiniBtn}
+                        onPress={() => {
+                          onClose();
+                          navigation.navigate('DoctorRx', { openId: prescription.prescriptionId || prescription._id });
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={dm.openMiniText}>Open</Text>
+                      </TouchableOpacity>
                     </View>
                   ) : (
                     <Text style={dm.medEmpty}>No prescription issued</Text>
@@ -226,6 +243,16 @@ function AppointmentDetailModal({ appt, onClose, onStatusChange }) {
                           </View>
                         );
                       })()}
+                      <TouchableOpacity
+                        style={[dm.openMiniBtn, { backgroundColor: '#F0FDFA', borderColor: '#99F6E4' }]}
+                        onPress={() => {
+                          onClose();
+                          navigation.navigate('DoctorLab', { initialTab: 'requests', openRequestId: labRequest.labRequestId || labRequest._id });
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[dm.openMiniText, { color: '#0D9488' }]}>Open</Text>
+                      </TouchableOpacity>
                     </View>
                   ) : (
                     <Text style={dm.medEmpty}>No lab tests requested</Text>
@@ -252,7 +279,20 @@ function AppointmentDetailModal({ appt, onClose, onStatusChange }) {
                 </TouchableOpacity>
               )}
               {appt.status === 'In Progress' && (
-                <TouchableOpacity style={dm.actionBtnPrimary} activeOpacity={0.85}>
+                <TouchableOpacity
+                  style={dm.actionBtnPrimary}
+                  onPress={() => {
+                    onClose();
+                    navigation.navigate('DoctorRx', {
+                      prefill: {
+                        patientName: appt.patient || '',
+                        patientId: appt.patientId || '',
+                        appointmentId: appt.apptId || '',
+                      },
+                    });
+                  }}
+                  activeOpacity={0.85}
+                >
                   <LinearGradient colors={['#0D47A1', '#1976D2']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={dm.actionBtnGrad}>
                     <Ionicons name="pencil-outline" size={16} color="#fff" />
                     <Text style={dm.actionBtnText}>Continue Treatment</Text>
@@ -299,6 +339,8 @@ const dm = StyleSheet.create({
   medPill: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 20, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start' },
   medPillDot: { width: 5, height: 5, borderRadius: 2.5 },
   medPillText: { fontSize: 11, fontWeight: '600' },
+  openMiniBtn: { borderRadius: 20, borderWidth: 1, borderColor: '#BFDBFE', backgroundColor: '#EFF6FF', paddingHorizontal: 9, paddingVertical: 4 },
+  openMiniText: { fontSize: 11, fontWeight: '700', color: '#1D4ED8' },
   medMono: { fontSize: 13, fontWeight: '700', color: '#1D4ED8', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace' },
   medEmpty: { fontSize: 12, color: '#94A3B8', fontStyle: 'italic' },
   skeleton: { height: 14, width: 100, backgroundColor: '#F1F5F9', borderRadius: 6 },
@@ -312,7 +354,7 @@ const dm = StyleSheet.create({
 
 // ── Main Component ────────────────────────────────────────────
 export default function DoctorAppointments() {
-   const navigation = useNavigation();
+  const navigation = useNavigation();
   const today = getLocalDateStr();
 
   const [appointments, setAppointments]   = useState([]);
@@ -412,6 +454,7 @@ export default function DoctorAppointments() {
   const selectedFullyBlocked = isFullyBlocked(selectedDate);
   const selectedDayHols      = getDayHols(selectedDate);
 
+
   // Filtered appointments
   const allAppts = appointments;
   const sessionAppts = selectedFullyBlocked ? [] : allAppts.filter(a =>
@@ -496,27 +539,27 @@ export default function DoctorAppointments() {
             </View>
 
             <TouchableOpacity
-  activeOpacity={0.88}
-  style={s.manageUnavailableBtn}
-  onPress={() =>
-    navigation.navigate('DoctorUnavailability', {
-      initialDate: selectedDate,
-    })
-  }
->
-  <View style={s.manageUnavailableIcon}>
-    <Ionicons name="calendar-clear-outline" size={18} color="#1565C0" />
-  </View>
-
-  <View style={{ flex: 1 }}>
-    <Text style={s.manageUnavailableTitle}>Manage Unavailability</Text>
-    <Text style={s.manageUnavailableSub}>
-      Block a full day or a specific session
-    </Text>
-  </View>
-
-  <Ionicons name="chevron-forward" size={18} color="#64748B" />
-</TouchableOpacity>
+              activeOpacity={0.88}
+              style={s.manageUnavailableBtn}
+              onPress={() =>
+                navigation.navigate('DoctorUnavailability', {
+                  initialDate: selectedDate,
+                })
+              }
+            >
+              <View style={s.manageUnavailableIcon}>
+                <Ionicons name="calendar-clear-outline" size={18} color="#1565C0" />
+              </View>
+            
+              <View style={{ flex: 1 }}>
+                <Text style={s.manageUnavailableTitle}>Manage Unavailability</Text>
+                <Text style={s.manageUnavailableSub}>
+                  Block a full day or a specific session
+                </Text>
+              </View>
+            
+              <Ionicons name="chevron-forward" size={18} color="#64748B" />
+            </TouchableOpacity>
 
             {/* Day headers */}
             <View style={s.calDayHeaders}>
@@ -836,21 +879,6 @@ const s = StyleSheet.create({
   statusBadge: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1 },
   statusText: { fontSize: 10, fontWeight: '700' },
 
-  // Schedule section
-  scheduleHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' },
-  refreshBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#F1F5F9', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
-  refreshText: { fontSize: 11, fontWeight: '600', color: '#374151' },
-  filterTabs: { flexDirection: 'row', margin: 12, backgroundColor: '#F1F5F9', borderRadius: 12, padding: 4, gap: 3 },
-  filterTab: { flex: 1, paddingVertical: 7, borderRadius: 9, alignItems: 'center' },
-  filterTabActive: { backgroundColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3, elevation: 2 },
-  filterTabText: { fontSize: 11, fontWeight: '600', color: '#64748B' },
-  filterTabTextActive: { color: '#0F172A' },
-  scheduleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' },
-  scheduleIdBox: { backgroundColor: '#EFF6FF', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5, flexShrink: 0 },
-  scheduleId: { fontSize: 10, fontWeight: '700', color: '#1D4ED8', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace' },
-  scheduleName: { fontSize: 13, fontWeight: '600', color: '#0F172A' },
-  scheduleMeta: { fontSize: 11, color: '#94A3B8', marginTop: 2 },
-
   manageUnavailableBtn: {
   backgroundColor: '#EFF6FF',
   borderWidth: 1,
@@ -885,4 +913,19 @@ manageUnavailableSub: {
   fontWeight: '600',
   marginTop: 2,
 },
+
+  // Schedule section
+  scheduleHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' },
+  refreshBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#F1F5F9', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
+  refreshText: { fontSize: 11, fontWeight: '600', color: '#374151' },
+  filterTabs: { flexDirection: 'row', margin: 12, backgroundColor: '#F1F5F9', borderRadius: 12, padding: 4, gap: 3 },
+  filterTab: { flex: 1, paddingVertical: 7, borderRadius: 9, alignItems: 'center' },
+  filterTabActive: { backgroundColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3, elevation: 2 },
+  filterTabText: { fontSize: 11, fontWeight: '600', color: '#64748B' },
+  filterTabTextActive: { color: '#0F172A' },
+  scheduleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' },
+  scheduleIdBox: { backgroundColor: '#EFF6FF', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5, flexShrink: 0 },
+  scheduleId: { fontSize: 10, fontWeight: '700', color: '#1D4ED8', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace' },
+  scheduleName: { fontSize: 13, fontWeight: '600', color: '#0F172A' },
+  scheduleMeta: { fontSize: 11, color: '#94A3B8', marginTop: 2 },
 });
