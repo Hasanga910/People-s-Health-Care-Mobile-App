@@ -13,16 +13,20 @@ import IndexScreen    from '../screens/IndexScreen';
 import LoginScreen    from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 
-// ── Doctor ────────────────────────────────────────────────────
+// ── Role Layouts (fully implemented) ─────────────────────────
 import DoctorLayout   from '../screens/doctor/DoctorLayout';
-
-// ── Placeholder (other roles) ─────────────────────────────────
+import CashierLayout  from '../screens/cashier/CashierLayout';
+import PatientLayout  from '../screens/patient/PatientLayout';
+import AdminLayout    from '../screens/admin/AdminLayout';
+import PharmacyLayout from '../screens/pharmacy/PharmacyLayout';
+import LabLayout      from '../screens/lab/LabLayout';
+// ── Placeholder (roles not yet implemented) ───────────────────
 import PlaceholderScreen from '../screens/PlaceholderScreen';
 
 const Stack = createStackNavigator();
 const Tab   = createBottomTabNavigator();
 
-// ── Public stack ───────────────────────────────────────────────
+// ── Public stack ──────────────────────────────────────────────
 function PublicStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -30,29 +34,6 @@ function PublicStack() {
       <Stack.Screen name="Login"    component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
     </Stack.Navigator>
-  );
-}
-
-// ── Patient Tabs ──────────────────────────────────────────────
-function PatientTabs() {
-  const C = COLORS.patient;
-  return (
-    <Tab.Navigator screenOptions={({ route }) => ({
-      headerShown: false,
-      tabBarActiveTintColor: C.primary,
-      tabBarInactiveTintColor: '#94a3b8',
-      tabBarStyle: { backgroundColor: '#fff', borderTopColor: '#e2e8f0', paddingBottom: 6, height: 60 },
-      tabBarIcon: ({ color, size }) => {
-        const icons = { Dashboard: 'home-outline', Appointments: 'calendar-outline', Prescriptions: 'document-text-outline', 'Lab Results': 'flask-outline', Billing: 'card-outline' };
-        return <Ionicons name={icons[route.name] || 'ellipse-outline'} size={size} color={color} />;
-      },
-    })}>
-      <Tab.Screen name="Dashboard"     component={PlaceholderScreen} />
-      <Tab.Screen name="Appointments"  component={PlaceholderScreen} />
-      <Tab.Screen name="Prescriptions" component={PlaceholderScreen} />
-      <Tab.Screen name="Lab Results"   component={PlaceholderScreen} />
-      <Tab.Screen name="Billing"       component={PlaceholderScreen} />
-    </Tab.Navigator>
   );
 }
 
@@ -78,79 +59,15 @@ function LabTabs() {
   );
 }
 
-// ── Pharmacy Tabs ─────────────────────────────────────────────
-function PharmacyTabs() {
-  const C = COLORS.pharmacy;
-  return (
-    <Tab.Navigator screenOptions={({ route }) => ({
-      headerShown: false,
-      tabBarActiveTintColor: C.primary,
-      tabBarInactiveTintColor: '#94a3b8',
-      tabBarStyle: { backgroundColor: '#fff', borderTopColor: '#e2e8f0', paddingBottom: 6, height: 60 },
-      tabBarIcon: ({ color, size }) => {
-        const icons = { Dashboard: 'home-outline', Queue: 'list-outline', Inventory: 'cube-outline' };
-        return <Ionicons name={icons[route.name] || 'ellipse-outline'} size={size} color={color} />;
-      },
-    })}>
-      <Tab.Screen name="Dashboard" component={PlaceholderScreen} />
-      <Tab.Screen name="Queue"     component={PlaceholderScreen} />
-      <Tab.Screen name="Inventory" component={PlaceholderScreen} />
-    </Tab.Navigator>
-  );
-}
-
-// ── Cashier Tabs ──────────────────────────────────────────────
-function CashierTabs() {
-  const C = COLORS.cashier;
-  return (
-    <Tab.Navigator screenOptions={({ route }) => ({
-      headerShown: false,
-      tabBarActiveTintColor: C.primary,
-      tabBarInactiveTintColor: '#94a3b8',
-      tabBarStyle: { backgroundColor: '#fff', borderTopColor: '#e2e8f0', paddingBottom: 6, height: 60 },
-      tabBarIcon: ({ color, size }) => {
-        const icons = { Dashboard: 'home-outline', Billing: 'receipt-outline', Turnover: 'bar-chart-outline' };
-        return <Ionicons name={icons[route.name] || 'ellipse-outline'} size={size} color={color} />;
-      },
-    })}>
-      <Tab.Screen name="Dashboard" component={PlaceholderScreen} />
-      <Tab.Screen name="Billing"   component={PlaceholderScreen} />
-      <Tab.Screen name="Turnover"  component={PlaceholderScreen} />
-    </Tab.Navigator>
-  );
-}
-
-// ── Admin Tabs ────────────────────────────────────────────────
-function AdminTabs() {
-  const C = COLORS.admin;
-  return (
-    <Tab.Navigator screenOptions={({ route }) => ({
-      headerShown: false,
-      tabBarActiveTintColor: C.primary,
-      tabBarInactiveTintColor: '#94a3b8',
-      tabBarStyle: { backgroundColor: '#fff', borderTopColor: '#e2e8f0', paddingBottom: 6, height: 60 },
-      tabBarIcon: ({ color, size }) => {
-        const icons = { Dashboard: 'home-outline', Staff: 'people-outline', Appointments: 'calendar-outline', Finance: 'cash-outline', Settings: 'settings-outline' };
-        return <Ionicons name={icons[route.name] || 'ellipse-outline'} size={size} color={color} />;
-      },
-    })}>
-      <Tab.Screen name="Dashboard"    component={PlaceholderScreen} />
-      <Tab.Screen name="Staff"        component={PlaceholderScreen} />
-      <Tab.Screen name="Appointments" component={PlaceholderScreen} />
-      <Tab.Screen name="Finance"      component={PlaceholderScreen} />
-      <Tab.Screen name="Settings"     component={PlaceholderScreen} />
-    </Tab.Navigator>
-  );
-}
-
 // ── Role → component map ──────────────────────────────────────
+// Prefer real Layout components over placeholder tabs
 const ROLE_MAP = {
-  doctor:   DoctorLayout,
-  patient:  PatientTabs,
-  lab:      LabTabs,
-  pharmacy: PharmacyTabs,
-  cashier:  CashierTabs,
-  admin:    AdminTabs,
+  doctor:   DoctorLayout,   // ✅ real layout (v1)
+  patient:  PatientLayout,  // ✅ real layout (v1)
+  cashier:  CashierLayout,  // ✅ real layout (v1)
+  admin:    AdminLayout,    // ✅ real layout (v1)
+  pharmacy: PharmacyLayout, // ✅ real layout (v3)
+  lab:      LabLayout,        // 🔲 placeholder tabs until LabLayout is built
 };
 
 // ── Root navigator ────────────────────────────────────────────
@@ -159,8 +76,8 @@ export default function AppNavigator() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={COLORS.default.primary} />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' }}>
+        <ActivityIndicator size="large" color={COLORS.default?.primary ?? '#01579B'} />
       </View>
     );
   }
