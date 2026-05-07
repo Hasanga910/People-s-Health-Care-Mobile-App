@@ -112,7 +112,7 @@ function Slideshow({ onRegister, onLogin }) {
   );
 }
 
-function ChatBot() {
+export function ChatBot({ fabBottom = 28 } = {}){
   const [open, setOpen]         = useState(false);
   const [messages, setMessages] = useState([
     { role: 'bot', text: "👋 Hello! I'm your navigation assistant for People's Health Care. Ask me anything about the system." },
@@ -141,7 +141,11 @@ function ChatBot() {
 
   return (
     <>
-      <TouchableOpacity style={cb.fab} onPress={() => setOpen(true)} activeOpacity={0.85}>
+      <TouchableOpacity
+  style={[cb.fab, { bottom: fabBottom }]}
+  onPress={() => setOpen(true)}
+  activeOpacity={0.85}
+>
         <Text style={{ fontSize: 24 }}>💬</Text>
       </TouchableOpacity>
       <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
@@ -211,6 +215,8 @@ export default function IndexScreen() {
   const doctorName  = doctor?.name || 'Dr. M.T.D. Jayaweera';
   const doctorExp   = doctor?.doctorDetails?.workingExperience || '15+';
   const doctorPhone = doctor?.telephone || '0777 883 343';
+  const doctorPhotoUrl = doctor?.photo || doctor?.profilePhoto || doctor?.doctorDetails?.profilePhoto || null;
+  const doctorInitials = doctorName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
   const STATS = [
     { number: '5000+', label: 'Patients Treated' },
@@ -349,7 +355,13 @@ export default function IndexScreen() {
           <Text style={s.sectionTitle}>Meet Our Physician</Text>
           <View style={s.accentBar} />
           <View style={s.doctorCard}>
-            <View style={s.doctorAvatar}><Text style={{ fontSize: 44 }}>👨‍⚕️</Text></View>
+            {doctorPhotoUrl ? (
+              <Image source={{ uri: doctorPhotoUrl }} style={s.doctorAvatarImage} />
+            ) : (
+              <View style={s.doctorAvatar}>
+                <Text style={s.doctorAvatarText}>{doctorInitials || 'DR'}</Text>
+              </View>
+            )}
             <Text style={s.doctorName}>{doctorName}</Text>
             <Text style={s.doctorRole}>Founder & Chief Physician</Text>
             <Text style={s.doctorSub}>People's Health Care, Matara</Text>
@@ -531,6 +543,8 @@ const s = StyleSheet.create({
   // Doctor
   doctorCard: { backgroundColor: '#0D2137', borderRadius: 24, padding: 24, alignItems: 'center', marginBottom: 20 },
   doctorAvatar: { width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: 'rgba(255,255,255,0.3)', marginBottom: 14 },
+  doctorAvatarImage: { width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 3, borderColor: 'rgba(255,255,255,0.3)', marginBottom: 14 },
+  doctorAvatarText: { color: '#fff', fontSize: 28, fontWeight: '900' },
   doctorName: { color: '#fff', fontWeight: '700', fontSize: 20 },
   doctorRole: { color: '#93C5FD', fontSize: 13, marginTop: 4 },
   doctorSub: { color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2, marginBottom: 16 },
